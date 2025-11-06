@@ -1,199 +1,433 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Garou Tiles Game</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: url('grass.png') no-repeat center/cover;
-      height: 100vh;
-      font-family: Arial, sans-serif;
-      color: white;
-      text-align: center;
-      user-select: none;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Catch Garou’s Fury</title>
+<style>
+  :root{
+    --ui-bg: rgba(0,0,0,0.45);
+    --accent: #ffd34d;
+  }
 
-    h1 {
-      margin-top: 10px;
-      font-size: 28px;
-      text-shadow: 2px 2px 5px black;
-    }
+  *{box-sizing:border-box; user-select:none}
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: url('grass.png') center/cover no-repeat;
+    height:100vh;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
 
-    #topBar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 40px;
-      margin-top: 10px;
-    }
+  header{
+    width:100%;
+    max-width:1100px;
+    padding:12px 16px;
+    display:flex;
+    gap:20px;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:10px;
+  }
 
-    #score {
-      font-size: 24px;
-    }
+  .leftUI, .rightUI { display:flex; gap:12px; align-items:center; }
 
-    #hearts {
-      font-size: 24px;
-      color: red;
-      text-shadow: 2px 2px 5px black;
-    }
+  #score { font-size:20px; background:var(--ui-bg); padding:8px 12px; border-radius:8px; }
+  #hearts { font-size:20px; background:var(--ui-bg); padding:8px 12px; border-radius:8px; color:#ff6b6b; }
 
-    #game {
-      position: relative;
-      width: 900px;
-      height: 600px;
-      margin: 20px auto;
-      border: 3px solid white;
-      display: flex;
-      justify-content: space-between;
-    }
+  #controls { display:flex; gap:8px; align-items:center; background:var(--ui-bg); padding:8px; border-radius:8px; }
+  #controls label{ font-size:13px; margin-right:6px; color:#eee; }
 
-    .lane {
-      position: relative;
-      width: 100px;
-      height: 100%;
-      border-left: 1px solid rgba(255,255,255,0.2);
-      border-right: 1px solid rgba(255,255,255,0.2);
-    }
+  /* Game area */
+  #stage {
+    width:1000px;
+    max-width:98vw;
+    height:640px;
+    margin:18px 0;
+    border-radius:12px;
+    border:3px solid rgba(255,255,255,0.2);
+    overflow:hidden;
+    position:relative;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.25));
+  }
 
-    .garou {
-      position: absolute;
-      width: 100px;
-      height: 100px;
-      background: url('garou.png') no-repeat center/contain;
-      top: -100px;
-    }
+  /* basket */
+  #basket {
+    position:absolute;
+    bottom:14px;
+    left:50%;
+    transform:translateX(-50%);
+    width:160px;
+    height:110px;
+    background: url('https://i.ibb.co/h2H9q9p/basket.png') center/contain no-repeat;
+    z-index:50;
+    transition: transform 0.05s linear;
+  }
 
-    #speedControl {
-      margin-top: 5px;
-      font-size: 18px;
-    }
+  /* falling item (good) */
+  .falling {
+    position:absolute;
+    width:110px;
+    height:110px;
+    top:-140px;
+    background: url('garou.png') center/contain no-repeat;
+    z-index:40;
+    pointer-events:auto;
+    transition: transform 0.08s linear;
+  }
 
-    #gameOver {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.8);
-      padding: 30px 50px;
-      border-radius: 15px;
-      font-size: 32px;
-      color: red;
-      text-shadow: 2px 2px 8px black;
-    }
-  </style>
+  /* evil variant: same image but tinted */
+  .falling.evil{
+    filter: hue-rotate(-50deg) saturate(1.8) brightness(0.8) contrast(1.1);
+    box-shadow: 0 8px 18px rgba(255,60,60,0.3);
+  }
+
+  /* hit flash */
+  .hitFlash{
+    position:absolute;
+    width:120%;
+    height:120%;
+    left:-10%;
+    top:-10%;
+    background: rgba(255,255,255,0.06);
+    z-index:60;
+    pointer-events:none;
+  }
+
+  /* Game over overlay */
+  #overlay {
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+    background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+    color:#fff;
+    text-align:center;
+    padding:30px;
+  }
+  #overlay .panel{
+    background: rgba(0,0,0,0.7);
+    padding:24px 36px;
+    border-radius:12px;
+    border:2px solid rgba(255,255,255,0.06);
+  }
+  #overlay button{
+    margin-top:12px;
+    padding:10px 18px;
+    background:var(--accent);
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  footer{ color:#ddd; font-size:13px; margin-bottom:18px; }
+  @media (max-width:520px){
+    #basket{ width:110px; height:80px }
+    .falling{ width:80px; height:80px }
+  }
+</style>
 </head>
 <body>
-  <h1>🎮 Garou Tiles Game 🎹</h1>
-  <div id="topBar">
-    <div id="score">Score: 0</div>
-    <div id="hearts">❤️❤️❤️❤️❤️</div>
-  </div>
-  <div id="speedControl">
-    Speed: <input type="range" id="speedSlider" min="2" max="10" step="0.5" value="5">
-  </div>
-  <div id="game"></div>
-  <div id="gameOver">💀 Game Over! Press F5 to restart 💀</div>
+  <header>
+    <div class="leftUI">
+      <div id="score">Score: 0</div>
+      <div id="hearts">❤️❤️❤️❤️❤️</div>
+    </div>
 
-  <script>
-    const game = document.getElementById("game");
-    const scoreDisplay = document.getElementById("score");
-    const heartsDisplay = document.getElementById("hearts");
-    const speedSlider = document.getElementById("speedSlider");
-    const gameOverScreen = document.getElementById("gameOver");
+    <div class="rightUI">
+      <div id="controls">
+        <label>Speed</label>
+        <input id="speed" type="range" min="0.8" max="3.2" step="0.1" value="1.2">
+        <label style="margin-left:8px">Spawn</label>
+        <input id="spawn" type="range" min="400" max="1500" step="50" value="800">
+      </div>
+      <div style="font-size:13px; color:#eee; margin-left:10px">Use mouse or ← → to move. Catch good Garou (+1). Avoid or miss evil Garou (catching evil = -2)</div>
+    </div>
+  </header>
 
-    let score = 0;
-    let speed = 5;
-    let hearts = 5;
-    let gameActive = true;
+  <main id="stage">
+    <div id="basket" aria-hidden="true"></div>
 
-    // Create 9 lanes
-    for (let i = 0; i < 9; i++) {
-      const lane = document.createElement("div");
-      lane.classList.add("lane");
-      game.appendChild(lane);
+    <!-- overlay -->
+    <div id="overlay">
+      <div class="panel">
+        <h2 id="gameOverTitle">Game Over</h2>
+        <p id="gameStats">Score: 0</p>
+        <button id="restartBtn">Restart</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>Garou Fury — local browser game • Put <code>garou.png</code> & <code>grass.png</code> in same folder</footer>
+
+<script>
+(() => {
+  // CONFIG
+  const STARTING_HEARTS = 5;
+  const EVIL_CHANCE = 0.28; // chance an spawned Garou is evil
+  const EVIL_SCORE_PENALTY = 2;
+  const MISS_PENALTY_HEART = 1; // miss good => lose heart
+  const MAX_FALLING = 12; // max simultaneous items
+
+  // DOM
+  const stage = document.getElementById('stage');
+  const basket = document.getElementById('basket');
+  const scoreEl = document.getElementById('score');
+  const heartsEl = document.getElementById('hearts');
+  const speedInput = document.getElementById('speed');
+  const spawnInput = document.getElementById('spawn');
+  const overlay = document.getElementById('overlay');
+  const gameStats = document.getElementById('gameStats');
+  const gameOverTitle = document.getElementById('gameOverTitle');
+  const restartBtn = document.getElementById('restartBtn');
+
+  // STATE
+  let score = 0;
+  let hearts = STARTING_HEARTS;
+  let running = true;
+  let fallingItems = []; // {el, x, y, speed, type}
+  let lastTime = 0;
+  let spawnTimer = 0;
+  let moveDir = 0; // -1 left, 1 right
+  let basketX = stage.clientWidth/2; // center
+  let basketWidth = 160;
+  let stageRect = stage.getBoundingClientRect();
+
+  // init UI
+  function updateScore(){ scoreEl.textContent = "Score: " + score; }
+  function updateHearts(){
+    heartsEl.innerHTML = "❤️".repeat(Math.max(0, hearts));
+  }
+  updateScore(); updateHearts();
+
+  // Resize handling
+  window.addEventListener('resize', () => {
+    stageRect = stage.getBoundingClientRect();
+  });
+
+  // Basket input: mouse
+  stage.addEventListener('mousemove', (e) => {
+    const rect = stage.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    basketX = clamp(x, basketWidth/2, rect.width - basketWidth/2);
+    setBasketPos();
+  });
+
+  // Keyboard input
+  window.addEventListener('keydown', (e) => {
+    if (!running && e.key === 'r') restart();
+    if (e.key === 'ArrowLeft') moveDir = -1;
+    if (e.key === 'ArrowRight') moveDir = 1;
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' && moveDir === -1) moveDir = 0;
+    if (e.key === 'ArrowRight' && moveDir === 1) moveDir = 0;
+  });
+
+  // helpers
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function rand(min,max){ return Math.random()*(max-min)+min; }
+
+  function setBasketPos(){
+    // place basket's center at basketX
+    const left = basketX - basketWidth/2;
+    basket.style.left = left + "px";
+  }
+
+  // spawn item
+  function spawnItem(){
+    if (!running) return;
+    if (fallingItems.length >= MAX_FALLING) return;
+
+    const item = document.createElement('div');
+    item.className = 'falling';
+    const isEvil = Math.random() < EVIL_CHANCE;
+    if (isEvil) item.classList.add('evil');
+
+    // random horizontal position inside stage
+    const stageW = stage.clientWidth;
+    const margin = 20;
+    const x = rand(margin, stageW - 110 - margin);
+
+    item.style.left = x + 'px';
+    item.style.top = '-140px';
+    stage.appendChild(item);
+
+    const baseSpeed = parseFloat(speedInput.value);
+    // small random variation
+    const speed = baseSpeed * rand(1, 1.5);
+
+    fallingItems.push({ el: item, x, y:-140, speed, type: isEvil ? 'evil' : 'good' });
+
+    // optional click on falling item also counts (for accessibility)
+    item.addEventListener('click', () => {
+      handleCatch(item);
+    });
+  }
+
+  function handleCatch(el){
+    // find item object
+    const idx = fallingItems.findIndex(it => it.el === el);
+    if (idx === -1) return;
+    const it = fallingItems[idx];
+
+    if (it.type === 'good'){
+      score += 1;
+      updateScore();
+      showHitFeedback(it.x, it.y, 'good');
+    } else {
+      score = Math.max(0, score - EVIL_SCORE_PENALTY);
+      updateScore();
+      showHitFeedback(it.x, it.y, 'evil');
+      flashBasketRed();
     }
 
-    const lanes = document.querySelectorAll(".lane");
+    // remove element & array
+    it.el.remove();
+    fallingItems.splice(idx,1);
+  }
 
-    // Spawn Garou
-    function spawnGarou() {
-      if (!gameActive) return;
+  function showHitFeedback(x,y,type){
+    const flash = document.createElement('div');
+    flash.className = 'hitFlash';
+    flash.style.left = x + 'px';
+    flash.style.top = (y - 30) + 'px';
+    if (type === 'evil') flash.style.background = 'rgba(255,60,60,0.12)';
+    stage.appendChild(flash);
+    setTimeout(()=>flash.remove(),200);
+  }
 
-      const laneIndex = Math.floor(Math.random() * 9);
-      const garou = document.createElement("div");
-      garou.classList.add("garou");
-      lanes[laneIndex].appendChild(garou);
+  function flashBasketRed(){
+    basket.style.transition = 'transform 0.06s, filter 0.08s';
+    basket.style.filter = 'drop-shadow(0 0 14px rgba(255,60,60,0.9))';
+    setTimeout(()=>basket.style.filter = '',150);
+  }
 
-      let pos = -100;
-      const fallSpeed = speed;
-      const fallInterval = setInterval(() => {
-        if (!gameActive) {
-          garou.remove();
-          clearInterval(fallInterval);
-          return;
-        }
+  // lose heart when good item hits bottom
+  function missGood(){
+    hearts -= MISS_PENALTY_HEART;
+    updateHearts();
+    if (hearts <= 0) endGame();
+  }
 
-        pos += fallSpeed;
-        garou.style.top = pos + "px";
+  function endGame(){
+    running = false;
+    overlay.style.display = 'flex';
+    gameOverTitle.textContent = 'Game Over!';
+    gameStats.textContent = 'Score: ' + score;
+  }
 
-        // Garou hits bottom
-        if (pos > 520) {
-          clearInterval(fallInterval);
-          garou.remove();
-          loseHeart();
-        }
-      }, 30);
+  function restart(){
+    // clear existing items
+    fallingItems.forEach(it => it.el && it.el.remove());
+    fallingItems = [];
+    score = 0; hearts = STARTING_HEARTS; running = true;
+    updateScore(); updateHearts();
+    overlay.style.display = 'none';
+    lastTime = performance.now();
+    spawnTimer = 0;
+    requestAnimationFrame(loop);
+  }
+
+  restartBtn.addEventListener('click', restart);
+
+  // main loop
+  function loop(now){
+    if (!lastTime) lastTime = now;
+    const dt = now - lastTime;
+    lastTime = now;
+
+    // move basket if using keyboard
+    if (moveDir !== 0){
+      const speed = 0.5 * stage.clientWidth * 0.001 * 16; // responsive speed
+      basketX += moveDir * speed * (dt/16);
+      basketX = clamp(basketX, basketWidth/2, stage.clientWidth - basketWidth/2);
+      setBasketPos();
     }
 
-    // Lose one heart
-    function loseHeart() {
-      if (!gameActive) return;
-      hearts--;
-      updateHearts();
-      if (hearts <= 0) {
-        endGame();
+    // update falling items
+    for (let i = fallingItems.length -1; i >=0; i--){
+      const it = fallingItems[i];
+      it.y += it.speed * (dt / 16); // scaled to frame time
+      it.el.style.top = it.y + 'px';
+
+      // collision with basket?
+      const itemRect = it.el.getBoundingClientRect();
+      const basketRect = basket.getBoundingClientRect();
+
+      if (rectsOverlap(itemRect, basketRect)){
+        // caught
+        if (it.type === 'good'){
+          score += 1;
+          updateScore();
+          showHitFeedback(it.x, it.y, 'good');
+        } else {
+          score = Math.max(0, score - EVIL_SCORE_PENALTY);
+          updateScore();
+          showHitFeedback(it.x, it.y, 'evil');
+          flashBasketRed();
+        }
+        it.el.remove();
+        fallingItems.splice(i,1);
+        continue;
+      }
+
+      // if reached ground
+      if (it.y > stage.clientHeight - 90){
+        it.el.remove();
+        fallingItems.splice(i,1);
+        if (it.type === 'good'){
+          missGood();
+        }
+        // evil reaching ground -> safe (no penalty)
       }
     }
 
-    // Update heart display
-    function updateHearts() {
-      heartsDisplay.innerHTML = "❤️".repeat(hearts);
+    // spawn logic using spawn slider (ms)
+    spawnTimer += dt;
+    const spawnInterval = parseFloat(spawnInput.value); // ms between spawns
+    if (spawnTimer >= spawnInterval){
+      spawnTimer = 0;
+      // spawn one or two items sometimes
+      spawnItem();
+      if (Math.random() < 0.18) spawnItem();
     }
 
-    // End game
-    function endGame() {
-      gameActive = false;
-      gameOverScreen.style.display = "block";
-    }
+    if (running) requestAnimationFrame(loop);
+  }
 
-    // Handle key presses 1–9
-    document.addEventListener("keydown", (e) => {
-      if (!gameActive) return;
-      const key = parseInt(e.key);
-      if (key >= 1 && key <= 9) {
-        const lane = lanes[key - 1];
-        const garou = lane.querySelector(".garou");
-        if (garou) {
-          garou.remove();
-          score++;
-          scoreDisplay.textContent = "Score: " + score;
-        }
-      }
-    });
+  function rectsOverlap(a,b){
+    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+  }
 
-    // Adjust speed
-    speedSlider.addEventListener("input", () => {
-      speed = parseFloat(speedSlider.value);
-    });
+  // start
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
 
-    // Spawn repeatedly
-    const spawner = setInterval(() => {
-      if (gameActive) spawnGarou();
-    }, 500); // smaller = faster spawn
-  </script>
+  // simple touch / click to move basket (center to clicked x)
+  stage.addEventListener('click', (e) => {
+    const rect = stage.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    basketX = clamp(x, basketWidth/2, rect.width - basketWidth/2);
+    setBasketPos();
+  });
+
+  // helper: keyboard shortcut to restart
+  window.addEventListener('keydown', (e) => {
+    if (!running && (e.key === 'Enter' || e.key === ' ')) restart();
+  });
+
+  // expose small helpers to window for debugging
+  window._game = { restart };
+
+})();
+</script>
 </body>
 </html>
+
