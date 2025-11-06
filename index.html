@@ -3,158 +3,87 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Catch Garou’s Fury</title>
+<title>Garou Catch — Basket Swap</title>
 <style>
-  :root{
-    --ui-bg: rgba(0,0,0,0.45);
-    --accent: #ffd34d;
-  }
-
+  :root { --ui-bg: rgba(0,0,0,0.45); --accent:#ffd34d; }
   *{box-sizing:border-box; user-select:none}
   body{
     margin:0;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family:Arial, Helvetica, sans-serif;
     background: url('grass.png') center/cover no-repeat;
-    height:100vh;
-    color:#fff;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
+    height:100vh; color:#fff;
+    display:flex; flex-direction:column; align-items:center;
   }
 
   header{
-    width:100%;
-    max-width:1100px;
-    padding:12px 16px;
-    display:flex;
-    gap:20px;
-    align-items:center;
-    justify-content:space-between;
+    width:100%; max-width:1100px; padding:12px 16px;
+    display:flex; gap:20px; align-items:center; justify-content:space-between;
     margin-top:10px;
   }
 
-  .leftUI, .rightUI { display:flex; gap:12px; align-items:center; }
+  #score{ font-size:20px; background:var(--ui-bg); padding:8px 12px; border-radius:8px; }
+  #hearts{ font-size:20px; background:var(--ui-bg); padding:8px 12px; border-radius:8px; color:#ff6b6b; }
 
-  #score { font-size:20px; background:var(--ui-bg); padding:8px 12px; border-radius:8px; }
-  #hearts { font-size:20px; background:var(--ui-bg); padding:8px 12px; border-radius:8px; color:#ff6b6b; }
-
-  #controls { display:flex; gap:8px; align-items:center; background:var(--ui-bg); padding:8px; border-radius:8px; }
+  #controls{ display:flex; gap:8px; align-items:center; background:var(--ui-bg); padding:8px; border-radius:8px; }
   #controls label{ font-size:13px; margin-right:6px; color:#eee; }
 
-  /* Game area */
-  #stage {
-    width:1000px;
-    max-width:98vw;
-    height:640px;
-    margin:18px 0;
-    border-radius:12px;
-    border:3px solid rgba(255,255,255,0.2);
-    overflow:hidden;
-    position:relative;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.25));
+  #stage{
+    width:1000px; max-width:98vw; height:640px; margin:18px 0;
+    border-radius:12px; border:3px solid rgba(255,255,255,0.2);
+    overflow:hidden; position:relative;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.06), rgba(0,0,0,0.18));
   }
 
-  /* basket */
-  #basket {
-    position:absolute;
-    bottom:14px;
-    left:50%;
-    transform:translateX(-50%);
-    width:160px;
-    height:110px;
-    background: url('https://i.ibb.co/h2H9q9p/basket.png') center/contain no-repeat;
-    z-index:50;
-    transition: transform 0.05s linear;
+  /* basket uses background-image set by JS to allow swapping */
+  #basket{
+    position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+    width:160px; height:110px; z-index:50; transition:filter 0.08s, transform 0.08s;
+    background-position:center; background-size:contain; background-repeat:no-repeat;
   }
 
-  /* falling item (good) */
-  .falling {
-    position:absolute;
-    width:110px;
-    height:110px;
-    top:-140px;
-    background: url('garou.png') center/contain no-repeat;
-    z-index:40;
-    pointer-events:auto;
-    transition: transform 0.08s linear;
+  .falling{
+    position:absolute; width:110px; height:110px; top:-160px;
+    background: url('garou.png') center/contain no-repeat; z-index:40;
   }
 
-  /* evil variant: same image but tinted */
-  .falling.evil{
-    filter: hue-rotate(-50deg) saturate(1.8) brightness(0.8) contrast(1.1);
-    box-shadow: 0 8px 18px rgba(255,60,60,0.3);
-  }
-
-  /* hit flash */
   .hitFlash{
-    position:absolute;
-    width:120%;
-    height:120%;
-    left:-10%;
-    top:-10%;
-    background: rgba(255,255,255,0.06);
-    z-index:60;
-    pointer-events:none;
+    position:absolute; width:120%; height:120%; left:-10%; top:-10%;
+    background: rgba(255,255,255,0.06); z-index:60; pointer-events:none;
   }
 
-  /* Game over overlay */
-  #overlay {
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:200;
-    background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6));
-    color:#fff;
-    text-align:center;
-    padding:30px;
+  #overlay{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    z-index:200; background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+    color:#fff; text-align:center; padding:30px;
   }
-  #overlay .panel{
-    background: rgba(0,0,0,0.7);
-    padding:24px 36px;
-    border-radius:12px;
-    border:2px solid rgba(255,255,255,0.06);
-  }
-  #overlay button{
-    margin-top:12px;
-    padding:10px 18px;
-    background:var(--accent);
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-  }
+  #overlay .panel{ background: rgba(0,0,0,0.7); padding:24px 36px; border-radius:12px; }
+  #overlay button{ margin-top:12px; padding:10px 18px; background:var(--accent); border:none; border-radius:8px; cursor:pointer; }
 
   footer{ color:#ddd; font-size:13px; margin-bottom:18px; }
-  @media (max-width:520px){
-    #basket{ width:110px; height:80px }
-    .falling{ width:80px; height:80px }
-  }
+  @media (max-width:520px){ #basket{ width:110px; height:80px } .falling{ width:80px; height:80px } }
 </style>
 </head>
 <body>
   <header>
-    <div class="leftUI">
+    <div style="display:flex;gap:12px;align-items:center">
       <div id="score">Score: 0</div>
       <div id="hearts">❤️❤️❤️❤️❤️</div>
     </div>
 
-    <div class="rightUI">
+    <div style="display:flex;align-items:center;gap:12px">
       <div id="controls">
         <label>Speed</label>
         <input id="speed" type="range" min="0.8" max="3.2" step="0.1" value="1.2">
         <label style="margin-left:8px">Spawn</label>
         <input id="spawn" type="range" min="400" max="1500" step="50" value="800">
       </div>
-      <div style="font-size:13px; color:#eee; margin-left:10px">Use mouse or ← → to move. Catch good Garou (+1). Avoid or miss evil Garou (catching evil = -2)</div>
+      <div style="font-size:13px;color:#eee;margin-left:10px">Mouse or ← → to move. Catch Garou to score. Miss 5 times → Game Over</div>
     </div>
   </header>
 
   <main id="stage">
     <div id="basket" aria-hidden="true"></div>
 
-    <!-- overlay -->
     <div id="overlay">
       <div class="panel">
         <h2 id="gameOverTitle">Game Over</h2>
@@ -164,16 +93,15 @@
     </div>
   </main>
 
-  <footer>Garou Fury — local browser game • Put <code>garou.png</code> & <code>grass.png</code> in same folder</footer>
+  <footer>Garou Catch — use <code>garou.png</code>, <code>basket.png</code>, <code>basket_catch.png</code>, <code>grass.png</code></footer>
 
 <script>
 (() => {
   // CONFIG
   const STARTING_HEARTS = 5;
-  const EVIL_CHANCE = 0.28; // chance an spawned Garou is evil
-  const EVIL_SCORE_PENALTY = 2;
-  const MISS_PENALTY_HEART = 1; // miss good => lose heart
-  const MAX_FALLING = 12; // max simultaneous items
+  const MISS_PENALTY_HEART = 1;
+  const MAX_FALLING = 12;
+  const CATCH_SWAP_MS = 220; // how long basket shows catch image
 
   // DOM
   const stage = document.getElementById('stage');
@@ -187,39 +115,51 @@
   const gameOverTitle = document.getElementById('gameOverTitle');
   const restartBtn = document.getElementById('restartBtn');
 
-  // STATE
+  // state
   let score = 0;
   let hearts = STARTING_HEARTS;
   let running = true;
-  let fallingItems = []; // {el, x, y, speed, type}
+  let fallingItems = []; // {el, x, y, speed}
   let lastTime = 0;
   let spawnTimer = 0;
   let moveDir = 0; // -1 left, 1 right
-  let basketX = stage.clientWidth/2; // center
-  let basketWidth = 160;
-  let stageRect = stage.getBoundingClientRect();
+  let basketX = 0;
+  const basketWidth = 160;
 
-  // init UI
+  // image names (must exist in same folder)
+  const BASKET_NORMAL = 'basket.png';
+  const BASKET_CATCH = 'basket_catch.png';
+
+  // init
   function updateScore(){ scoreEl.textContent = "Score: " + score; }
-  function updateHearts(){
-    heartsEl.innerHTML = "❤️".repeat(Math.max(0, hearts));
-  }
+  function updateHearts(){ heartsEl.innerHTML = "❤️".repeat(Math.max(0, hearts)); }
   updateScore(); updateHearts();
 
-  // Resize handling
-  window.addEventListener('resize', () => {
-    stageRect = stage.getBoundingClientRect();
-  });
+  // set initial basket image & position
+  function setBasketImage(imgName){
+    basket.style.backgroundImage = `url('${imgName}')`;
+    basket.style.backgroundSize = 'contain';
+  }
+  setBasketImage(BASKET_NORMAL);
 
-  // Basket input: mouse
+  // resize and position basket in center
+  function layout(){
+    const rect = stage.getBoundingClientRect();
+    basketX = rect.width / 2;
+    basket.style.left = (basketX - basketWidth/2) + 'px';
+  }
+  window.addEventListener('resize', layout);
+  layout();
+
+  // mouse movement
   stage.addEventListener('mousemove', (e) => {
     const rect = stage.getBoundingClientRect();
     const x = e.clientX - rect.left;
     basketX = clamp(x, basketWidth/2, rect.width - basketWidth/2);
-    setBasketPos();
+    basket.style.left = (basketX - basketWidth/2) + 'px';
   });
 
-  // Keyboard input
+  // keyboard movement
   window.addEventListener('keydown', (e) => {
     if (!running && e.key === 'r') restart();
     if (e.key === 'ArrowLeft') moveDir = -1;
@@ -234,82 +174,70 @@
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function rand(min,max){ return Math.random()*(max-min)+min; }
 
-  function setBasketPos(){
-    // place basket's center at basketX
-    const left = basketX - basketWidth/2;
-    basket.style.left = left + "px";
-  }
-
-  // spawn item
+  // spawn a single good Garou
   function spawnItem(){
     if (!running) return;
     if (fallingItems.length >= MAX_FALLING) return;
 
-    const item = document.createElement('div');
-    item.className = 'falling';
-    const isEvil = Math.random() < EVIL_CHANCE;
-    if (isEvil) item.classList.add('evil');
-
-    // random horizontal position inside stage
+    const el = document.createElement('div');
+    el.className = 'falling';
     const stageW = stage.clientWidth;
     const margin = 20;
     const x = rand(margin, stageW - 110 - margin);
-
-    item.style.left = x + 'px';
-    item.style.top = '-140px';
-    stage.appendChild(item);
+    el.style.left = x + 'px';
+    el.style.top = '-160px';
+    stage.appendChild(el);
 
     const baseSpeed = parseFloat(speedInput.value);
-    // small random variation
     const speed = baseSpeed * rand(1, 1.5);
 
-    fallingItems.push({ el: item, x, y:-140, speed, type: isEvil ? 'evil' : 'good' });
+    fallingItems.push({ el, x, y:-160, speed });
 
-    // optional click on falling item also counts (for accessibility)
-    item.addEventListener('click', () => {
-      handleCatch(item);
-    });
+    // clicking falling item also counts as catch
+    el.addEventListener('click', () => handleCatch(el));
   }
 
+  // when catching an item (either by collision or click)
   function handleCatch(el){
-    // find item object
     const idx = fallingItems.findIndex(it => it.el === el);
     if (idx === -1) return;
     const it = fallingItems[idx];
 
-    if (it.type === 'good'){
-      score += 1;
-      updateScore();
-      showHitFeedback(it.x, it.y, 'good');
-    } else {
-      score = Math.max(0, score - EVIL_SCORE_PENALTY);
-      updateScore();
-      showHitFeedback(it.x, it.y, 'evil');
-      flashBasketRed();
-    }
+    // increment score
+    score += 1;
+    updateScore();
+    showHitFeedback(it.x, it.y);
 
-    // remove element & array
+    // swap basket image briefly
+    swapBasketToCatch();
+
+    // remove element
     it.el.remove();
     fallingItems.splice(idx,1);
   }
 
-  function showHitFeedback(x,y,type){
+  function showHitFeedback(x,y){
     const flash = document.createElement('div');
     flash.className = 'hitFlash';
     flash.style.left = x + 'px';
     flash.style.top = (y - 30) + 'px';
-    if (type === 'evil') flash.style.background = 'rgba(255,60,60,0.12)';
     stage.appendChild(flash);
-    setTimeout(()=>flash.remove(),200);
+    setTimeout(()=>flash.remove(),220);
   }
 
-  function flashBasketRed(){
-    basket.style.transition = 'transform 0.06s, filter 0.08s';
-    basket.style.filter = 'drop-shadow(0 0 14px rgba(255,60,60,0.9))';
-    setTimeout(()=>basket.style.filter = '',150);
+  let catchTimeout = null;
+  function swapBasketToCatch(){
+    // show catch image briefly
+    setBasketImage(BASKET_CATCH);
+    basket.style.transform = 'translateX(-50%) scale(1.03)';
+    if (catchTimeout) clearTimeout(catchTimeout);
+    catchTimeout = setTimeout(() => {
+      setBasketImage(BASKET_NORMAL);
+      basket.style.transform = 'translateX(-50%)';
+      catchTimeout = null;
+    }, CATCH_SWAP_MS);
   }
 
-  // lose heart when good item hits bottom
   function missGood(){
     hearts -= MISS_PENALTY_HEART;
     updateHearts();
@@ -319,17 +247,17 @@
   function endGame(){
     running = false;
     overlay.style.display = 'flex';
-    gameOverTitle.textContent = 'Game Over!';
+    gameOverTitle.textContent = 'Game Over';
     gameStats.textContent = 'Score: ' + score;
   }
 
   function restart(){
-    // clear existing items
     fallingItems.forEach(it => it.el && it.el.remove());
     fallingItems = [];
     score = 0; hearts = STARTING_HEARTS; running = true;
     updateScore(); updateHearts();
     overlay.style.display = 'none';
+    setBasketImage(BASKET_NORMAL);
     lastTime = performance.now();
     spawnTimer = 0;
     requestAnimationFrame(loop);
@@ -343,38 +271,27 @@
     const dt = now - lastTime;
     lastTime = now;
 
-    // move basket if using keyboard
+    // keyboard basket movement
     if (moveDir !== 0){
-      const speed = 0.5 * stage.clientWidth * 0.001 * 16; // responsive speed
-      basketX += moveDir * speed * (dt/16);
+      // responsive keyboard speed
+      const kbSpeed = 0.6 * stage.clientWidth * 0.001 * (dt/16);
+      basketX += moveDir * kbSpeed;
       basketX = clamp(basketX, basketWidth/2, stage.clientWidth - basketWidth/2);
-      setBasketPos();
+      basket.style.left = (basketX - basketWidth/2) + 'px';
     }
 
     // update falling items
     for (let i = fallingItems.length -1; i >=0; i--){
       const it = fallingItems[i];
-      it.y += it.speed * (dt / 16); // scaled to frame time
+      it.y += it.speed * (dt / 16);
       it.el.style.top = it.y + 'px';
 
       // collision with basket?
       const itemRect = it.el.getBoundingClientRect();
       const basketRect = basket.getBoundingClientRect();
-
       if (rectsOverlap(itemRect, basketRect)){
-        // caught
-        if (it.type === 'good'){
-          score += 1;
-          updateScore();
-          showHitFeedback(it.x, it.y, 'good');
-        } else {
-          score = Math.max(0, score - EVIL_SCORE_PENALTY);
-          updateScore();
-          showHitFeedback(it.x, it.y, 'evil');
-          flashBasketRed();
-        }
-        it.el.remove();
-        fallingItems.splice(i,1);
+        // caught by basket
+        handleCatch(it.el);
         continue;
       }
 
@@ -382,21 +299,17 @@
       if (it.y > stage.clientHeight - 90){
         it.el.remove();
         fallingItems.splice(i,1);
-        if (it.type === 'good'){
-          missGood();
-        }
-        // evil reaching ground -> safe (no penalty)
+        missGood();
       }
     }
 
-    // spawn logic using spawn slider (ms)
+    // spawn logic
     spawnTimer += dt;
-    const spawnInterval = parseFloat(spawnInput.value); // ms between spawns
+    const spawnInterval = parseFloat(spawnInput.value);
     if (spawnTimer >= spawnInterval){
       spawnTimer = 0;
-      // spawn one or two items sometimes
       spawnItem();
-      if (Math.random() < 0.18) spawnItem();
+      if (Math.random() < 0.12) spawnItem(); // small chance to spawn second quickly
     }
 
     if (running) requestAnimationFrame(loop);
@@ -406,25 +319,24 @@
     return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
   }
 
-  // start
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-
-  // simple touch / click to move basket (center to clicked x)
+  // click to move basket center
   stage.addEventListener('click', (e) => {
     const rect = stage.getBoundingClientRect();
     const x = e.clientX - rect.left;
     basketX = clamp(x, basketWidth/2, rect.width - basketWidth/2);
-    setBasketPos();
+    basket.style.left = (basketX - basketWidth/2) + 'px';
   });
 
-  // helper: keyboard shortcut to restart
+  // quick restart keys
   window.addEventListener('keydown', (e) => {
     if (!running && (e.key === 'Enter' || e.key === ' ')) restart();
   });
 
-  // expose small helpers to window for debugging
-  window._game = { restart };
+  // start loop
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+
+  // helpers: clamp, rand already above
 
 })();
 </script>
